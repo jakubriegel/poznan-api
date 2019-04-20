@@ -86,6 +86,7 @@ class Scrapper:
         proxies_table = soup.find(id='proxylisttable')
         for proxyRow in proxies_table.tbody.find_all('tr'):
             proxies.append(str(proxyRow.find_all('td')[0].string) + ':' + str(proxyRow.find_all('td')[1].string))
+        r.close()
         return proxies
 
     def __get_next_proxy(self) -> str:
