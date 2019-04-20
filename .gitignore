@@ -2,3 +2,4 @@
 venv
 venv36
 env
+__pycache__
