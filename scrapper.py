@@ -1,5 +1,5 @@
 from bs4 import BeautifulSoup
-from requests import Response, adapters
+from requests import Response, adapters, RequestException
 from requests_html import AsyncHTMLSession, HTMLResponse
 from typing import Dict, Set, Tuple, List
 import time
@@ -22,8 +22,8 @@ class Scrapper:
     GET_TIMEOUT = 2
     HTML_RENDER_SLEEP = 2
 
-    STANDARD_PROXY_NUMBER = 5
-    MINIMAL_PROXY_NUMBER = 1
+    STANDARD_PROXY_NUMBER = 15
+    MINIMAL_PROXY_NUMBER = 5
 
     DATA_COLLECTING_TIME = 300
 
@@ -70,7 +70,7 @@ class Scrapper:
                 await Scrapper.__get(Scrapper.VM_URL, proxy)
                 util.log("got working proxy")
                 self.proxies.add(proxy)
-            except:
+            except RequestException:
                 pass
 
             if 0 < len(self.proxies) and n <= len(self.proxies):
@@ -109,9 +109,6 @@ class Scrapper:
                 util.log('deleting departures of {}'.format(s))
                 self.stops.pop(s)
 
-        import json
-        util.log(json.dumps(self.stops))
-
     async def __add_departures(self, stop: str, from_request: bool = False) -> None:
         util.log('adding departures for {}'.format(stop))
 
@@ -123,8 +120,7 @@ class Scrapper:
     async def __live_departures(self, stop: str) -> List[DeparturesRow]:
         util.log('getting departures for {}'.format(stop))
 
-        proxy = self.__get_next_proxy()
-        r = await Scrapper.__get_vm(stop, proxy)
+        r = await self.__get_vm(stop)
         await r.html.arender(sleep=Scrapper.HTML_RENDER_SLEEP)
 
         soup = BeautifulSoup(r.html.raw_html, 'html.parser')
@@ -161,14 +157,23 @@ class Scrapper:
         await session.close()
         return result
 
-    @staticmethod
-    async def __get_vm(stop: str, proxy: str) -> HTMLResponse:
+    async def __get_vm(self, stop: str) -> HTMLResponse:
         url = '{}/?przystanek={}'.format(Scrapper.VM_URL, stop)
         session = AsyncHTMLSession()
-        adapter = adapters.HTTPAdapter(max_retries=10)
+        adapter = adapters.HTTPAdapter(max_retries=5)
         session.mount('http://', adapter)
         session.mount('https://', adapter)
-        result = await session.get(url, proxies=Scrapper.__proxies(proxy), timeout=Scrapper.GET_TIMEOUT)
+
+        result = None
+        while not isinstance(result, HTMLResponse):
+            proxy = self.__get_next_proxy()
+            try:
+                result = await session.get(url, proxies=Scrapper.__proxies(proxy), timeout=Scrapper.GET_TIMEOUT)
+            except RequestException:
+                if len(self.proxies) == 1:
+                    raise Exception('no working proxy available')
+                pass
+
         await session.close()
         return result
 
