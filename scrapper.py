@@ -23,11 +23,11 @@ class Scrapper:
     HTML_RENDER_SLEEP = 2
 
     STANDARD_PROXY_NUMBER = 15
-    MINIMAL_PROXY_NUMBER = 5
+    MINIMAL_PROXY_NUMBER = 10
 
     DATA_COLLECTING_TIME = 300
 
-    UPDATE_PROXY_INTERVAL = 15
+    UPDATE_PROXY_INTERVAL = 30
     UPDATE_DEPARTURES_INTERVAL = 20
 
     def __init__(self) -> None:
@@ -56,6 +56,10 @@ class Scrapper:
         util.log('updating proxies')
         if len(self.proxies) < n:
             util.log('low proxies number')
+
+            if len(self.proxies) == 1:
+                self.proxies.clear()
+
             await self.__get_working_proxies(n)
             util.log('proxies updated, current number {}'.format(len(self.proxies)))
 
