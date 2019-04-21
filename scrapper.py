@@ -22,12 +22,12 @@ class Scrapper:
     GET_TIMEOUT = 2
     HTML_RENDER_SLEEP = 2
 
-    STANDARD_PROXY_NUMBER = 50
-    MINIMAL_PROXY_NUMBER = 20
+    STANDARD_PROXY_NUMBER = 5
+    MINIMAL_PROXY_NUMBER = 1
 
     DATA_COLLECTING_TIME = 300
 
-    UPDATE_PROXY_INTERVAL = 30
+    UPDATE_PROXY_INTERVAL = 15
     UPDATE_DEPARTURES_INTERVAL = 20
 
     def __init__(self) -> None:
@@ -101,11 +101,16 @@ class Scrapper:
         util.log('updating departures')
 
         for s in list(self.stops):
+            util.log('updating {}'.format(s))
             if Scrapper.__time_elapsed(self.stops[s][2]) <= Scrapper.DATA_COLLECTING_TIME:
                 util.log('updating departures for {}'.format(s))
                 await self.__add_departures(s)
             else:
+                util.log('deleting departures of {}'.format(s))
                 self.stops.pop(s)
+
+        import json
+        util.log(json.dumps(self.stops))
 
     async def __add_departures(self, stop: str, from_request: bool = False) -> None:
         util.log('adding departures for {}'.format(stop))
